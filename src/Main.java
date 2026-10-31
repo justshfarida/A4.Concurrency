@@ -7,8 +7,11 @@ import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 
 public class Main {
+    private static final String RESULT_FILE = "result.jpg";
+
     // Space reserved for the window title bar and borders.
     private static final int FRAME_MARGIN_WIDTH = 20;
     private static final int FRAME_MARGIN_HEIGHT = 60;
@@ -26,7 +29,15 @@ public class Main {
         }
 
         BufferedImage image = loadImage(fileName);
-        SwingUtilities.invokeLater(() -> showWindow(image));
+        ImagePanel panel = createWindow(image);
+
+        // Processing runs on the main thread, never on Swing's UI thread,
+        // so the window stays responsive while squares are being averaged.
+        ImageProcessor processor = new ImageProcessor(image, squareSize, panel::repaint);
+        processor.processSingleThreaded(); // M mode is added in the next step
+
+        panel.repaint();
+        saveImage(image, RESULT_FILE);
     }
 
     private static int parseSquareSize(String value) {
@@ -55,6 +66,38 @@ public class Main {
         }
     }
 
+    private static void saveImage(BufferedImage image, String fileName) {
+        try {
+            ImageIO.write(image, "jpg", new File(fileName));
+            System.out.println("Result saved to " + fileName);
+        } catch (IOException e) {
+            exitWithError("Could not save result: " + e.getMessage());
+        }
+    }
+
+    /** Builds and shows the window on Swing's UI thread and waits until it is ready. */
+    private static ImagePanel createWindow(BufferedImage image) {
+        ImagePanel[] panel = new ImagePanel[1];
+        try {
+            SwingUtilities.invokeAndWait(() -> panel[0] = showWindow(image));
+        } catch (InterruptedException | InvocationTargetException e) {
+            exitWithError("Could not open the window: " + e.getMessage());
+        }
+        return panel[0];
+    }
+
+    private static ImagePanel showWindow(BufferedImage image) {
+        ImagePanel panel = new ImagePanel(image, computeDisplaySize(image));
+        JFrame frame = new JFrame("Image Averaging");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.add(panel);
+        frame.pack();
+        frame.setLocationRelativeTo(null);
+        frame.setResizable(false);
+        frame.setVisible(true);
+        return panel;
+    }
+
     /** Fits the image inside the usable screen area, never enlarging it. */
     private static Dimension computeDisplaySize(BufferedImage image) {
         Rectangle screen = GraphicsEnvironment.getLocalGraphicsEnvironment()
@@ -65,16 +108,6 @@ public class Main {
                 maxHeight / image.getHeight()));
         return new Dimension((int) (image.getWidth() * scale),
                 (int) (image.getHeight() * scale));
-    }
-
-    private static void showWindow(BufferedImage image) {
-        JFrame frame = new JFrame("Image Averaging");
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.add(new ImagePanel(image, computeDisplaySize(image)));
-        frame.pack();
-        frame.setLocationRelativeTo(null);
-        frame.setResizable(false);
-        frame.setVisible(true);
     }
 
     private static void exitWithError(String message) {
