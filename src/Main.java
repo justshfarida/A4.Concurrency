@@ -72,7 +72,9 @@ public class Main {
 
     private static void saveImage(BufferedImage image, String fileName) {
         try {
-            ImageIO.write(image, "jpg", new File(fileName));
+            if (!ImageIO.write(image, "jpg", new File(fileName))) {
+                exitWithError("Could not save result: no JPG writer for this image type.");
+            }
             System.out.println("Result saved to " + fileName);
         } catch (IOException e) {
             exitWithError("Could not save result: " + e.getMessage());

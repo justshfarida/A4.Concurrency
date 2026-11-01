@@ -33,6 +33,12 @@ java -cp out Main photo.jpg 20 M
 The result is saved as `result.jpg` in the folder you run the command from.
 The window stays open after processing; close it to exit.
 
+A sample image is included, so you can try it immediately:
+
+```
+java -cp out Main test.jpg 20 M
+```
+
 For very large images, give Java more memory: `java -Xmx4g -cp out Main photo.jpg 20 M`
 
 ## How it works

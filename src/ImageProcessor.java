@@ -39,6 +39,34 @@ public class ImageProcessor {
         logDone(start);
     }
 
+    /** Processes the image split into horizontal bands, one thread per band. */
+    public void processMultiThreaded() {
+        long start = System.nanoTime();
+        int squareRows = Math.ceilDiv(image.getHeight(), squareSize);
+        int threadCount = Math.min(Runtime.getRuntime().availableProcessors(), squareRows);
+        LOGGER.info("Processing with " + threadCount + " threads");
+
+        List<Thread> workers = new ArrayList<>();
+        for (int i = 0; i < threadCount; i++) {
+            int startY = bandStart(i, threadCount, squareRows);
+            int endY = bandStart(i + 1, threadCount, squareRows);
+            Thread worker = new Thread(() -> processRows(startY, endY), "worker-" + i);
+            workers.add(worker);
+            worker.start();
+        }
+
+        for (Thread worker : workers) {
+            try {
+                worker.join();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return;
+            }
+        }
+
+        logDone(start);
+    }
+
     /** Processes all squares whose top edge lies in [startY, endY). */
     private void processRows(int startY, int endY) {
         long start = System.nanoTime();
@@ -93,41 +121,15 @@ public class ImageProcessor {
         }
     }
 
-
-    public void processMultiThreaded() {
-        long start = System.nanoTime();
-        int squareRows = Math.ceilDiv(image.getHeight(), squareSize);
-        int threadCount = Math.min(Runtime.getRuntime().availableProcessors(), squareRows);
-        LOGGER.info("Processing with " + threadCount + " threads");
-
-        List<Thread> workers = new ArrayList<>();
-        for (int i = 0; i < threadCount; i++) {
-            int startY = bandStart(i, threadCount, squareRows);
-            int endY = bandStart(i + 1, threadCount, squareRows);
-            Thread worker = new Thread(() -> processRows(startY, endY), "worker-" + i);
-            workers.add(worker);
-            worker.start();
-        }
-
-        for (Thread worker : workers) {
-            try {
-                worker.join();
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                return;
-            }
-        }
-
-        logDone(start);
-    }
     /** Top pixel row of the given band. Bands split the rows of squares evenly. */
     private int bandStart(int band, int bandCount, int squareRows) {
         int firstSquareRow = band * squareRows / bandCount;
         return Math.min(firstSquareRow * squareSize, image.getHeight());
     }
+
+    /** Logs how long the processing took. */
     private void logDone(long startNanos) {
         double seconds = (System.nanoTime() - startNanos) / 1e9;
         LOGGER.info(String.format("Done in %.2f s", seconds));
     }
-
 }
