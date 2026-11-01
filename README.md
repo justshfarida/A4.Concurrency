@@ -4,6 +4,12 @@ Pixelates a JPG image by replacing every square block with its average color.
 The processing is shown live in a window, square by square, and can run
 single-threaded or multi-threaded.
 
+## Example
+
+| Original | Result (square size 20) |
+|----------|-------------------------|
+| ![Original](test.jpg) | ![Result](images/result-20.jpg) |
+
 ## Requirements
 
 - Java 21 or newer (JDK, not only a JRE). Check with `java -version` and `javac -version`.
