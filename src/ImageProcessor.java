@@ -94,8 +94,6 @@ public class ImageProcessor {
     }
 
 
-    /** Processes the image split into horizontal bands, one per CPU core. */
-    /** Processes the image split into horizontal bands, one thread per band. */
     public void processMultiThreaded() {
         long start = System.nanoTime();
         int squareRows = Math.ceilDiv(image.getHeight(), squareSize);
