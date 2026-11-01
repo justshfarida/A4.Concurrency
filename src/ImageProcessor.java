@@ -1,5 +1,7 @@
 import java.awt.image.BufferedImage;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.logging.Logger;
 
 /** Pixelates an image by replacing each square block with its average color. */
@@ -93,22 +95,33 @@ public class ImageProcessor {
 
 
     /** Processes the image split into horizontal bands, one per CPU core. */
+    /** Processes the image split into horizontal bands, one thread per band. */
     public void processMultiThreaded() {
         long start = System.nanoTime();
         int squareRows = Math.ceilDiv(image.getHeight(), squareSize);
         int threadCount = Math.min(Runtime.getRuntime().availableProcessors(), squareRows);
         LOGGER.info("Processing with " + threadCount + " threads");
 
+        List<Thread> workers = new ArrayList<>();
         for (int i = 0; i < threadCount; i++) {
             int startY = bandStart(i, threadCount, squareRows);
             int endY = bandStart(i + 1, threadCount, squareRows);
-            System.out.println("Band " + i + ": pixel rows " + startY + " to " + endY);
-            processRows(startY, endY); // temporary: runs bands one after another
+            Thread worker = new Thread(() -> processRows(startY, endY), "worker-" + i);
+            workers.add(worker);
+            worker.start();
+        }
+
+        for (Thread worker : workers) {
+            try {
+                worker.join();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return;
+            }
         }
 
         logDone(start);
     }
-
     /** Top pixel row of the given band. Bands split the rows of squares evenly. */
     private int bandStart(int band, int bandCount, int squareRows) {
         int firstSquareRow = band * squareRows / bandCount;
