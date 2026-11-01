@@ -34,8 +34,12 @@ public class Main {
         // Processing runs on the main thread, never on Swing's UI thread,
         // so the window stays responsive while squares are being averaged.
         ImageProcessor processor = new ImageProcessor(image, squareSize, panel::repaint);
-        processor.processSingleThreaded(); // M mode is added in the next step
 
+        if (mode.equals("M")) {
+            processor.processMultiThreaded();
+        } else {
+            processor.processSingleThreaded();
+        }
         panel.repaint();
         saveImage(image, RESULT_FILE);
     }

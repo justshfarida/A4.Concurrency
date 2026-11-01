@@ -91,8 +91,32 @@ public class ImageProcessor {
         }
     }
 
+
+    /** Processes the image split into horizontal bands, one per CPU core. */
+    public void processMultiThreaded() {
+        long start = System.nanoTime();
+        int squareRows = Math.ceilDiv(image.getHeight(), squareSize);
+        int threadCount = Math.min(Runtime.getRuntime().availableProcessors(), squareRows);
+        LOGGER.info("Processing with " + threadCount + " threads");
+
+        for (int i = 0; i < threadCount; i++) {
+            int startY = bandStart(i, threadCount, squareRows);
+            int endY = bandStart(i + 1, threadCount, squareRows);
+            System.out.println("Band " + i + ": pixel rows " + startY + " to " + endY);
+            processRows(startY, endY); // temporary: runs bands one after another
+        }
+
+        logDone(start);
+    }
+
+    /** Top pixel row of the given band. Bands split the rows of squares evenly. */
+    private int bandStart(int band, int bandCount, int squareRows) {
+        int firstSquareRow = band * squareRows / bandCount;
+        return Math.min(firstSquareRow * squareSize, image.getHeight());
+    }
     private void logDone(long startNanos) {
         double seconds = (System.nanoTime() - startNanos) / 1e9;
         LOGGER.info(String.format("Done in %.2f s", seconds));
     }
+
 }
