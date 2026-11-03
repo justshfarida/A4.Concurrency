@@ -96,7 +96,8 @@ left to right and top to bottom, so several regions fill in at the same time.
 
 ## Example timing
 
-Same image, square size 20, on a 16-thread CPU:
+Same image (`test.jpg`, 2272 × 1136), square size 20, on an Intel Core Ultra 9 285H
+(16 cores, 16 threads, so M mode used 16 threads):
 
 | Mode | Time   |
 |------|--------|
@@ -104,6 +105,31 @@ Same image, square size 20, on a 16-thread CPU:
 | M    | 1.09 s  |
 
 These times include the visualization delay described above.
+
+**Pure processing time** (visualization delay disabled), on a 12000 × 8000 JPG
+with square size 1, same CPU. Square size 1 is used as a worst-case workload:
+every pixel is its own square, so the image does not visibly change, but the
+program does the maximum amount of work (96 million squares).
+
+| Mode | Time   |
+|------|--------|
+| S    | 5.13 s |
+| M    | 3.67 s |
+
+On small images, such as `test.jpg`, the multi-threaded mode is not faster:
+the work takes only about 0.1 s, so the cost of starting the threads and of
+the JIT compiler warming up the code in each of them dominates. The speedup
+appears once each thread has enough work: here about 1.4×. It is far below
+16× for several reasons:
+
+- The Core Ultra 9 285H is a hybrid CPU (performance, efficiency and low-power
+  cores). Every thread gets an equal band, and the run finishes only when the
+  slowest thread does.
+- With square size 1 the work per pixel is tiny, so the threads mostly move
+  data in and out of memory. All of them share the same memory bandwidth.
+- While processing, the window is redrawn about 30 times per second, and each
+  redraw scales the whole 96-megapixel image. This competes with the worker
+  threads for CPU time and memory bandwidth.
 
 ## Project structure
 
