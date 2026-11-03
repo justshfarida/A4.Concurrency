@@ -77,8 +77,18 @@ left to right and top to bottom, so several regions fill in at the same time.
   larger than the screen. **The processing always works on the original
   full-size image**; only the drawing is scaled.
 - Processing runs outside Swing's UI thread, so the window stays responsive.
-  Worker threads only call `repaint()`, which is thread-safe; all drawing is
-  done by Swing's UI thread. This keeps the program safe on macOS.
+  All drawing is done by Swing's UI thread, which keeps the program safe on macOS.
+- The window is refreshed by a Swing `Timer` about 30 times per second, instead
+  of after every square. Repaint requests go through Swing's shared repaint
+  manager, which uses a lock; if every worker requested a repaint after every
+  square, the threads would compete for that lock (with small squares, millions
+  of times). With the timer, worker threads only compute and never touch Swing,
+  and the screen still updates smoothly. A final repaint after all workers
+  finish shows the complete result.
+- The window reads pixels while workers are writing them, without locking. A
+  square may therefore appear half-updated for a single frame; the next frame
+  corrects it. The saved `result.jpg` is always complete, because it is written
+  only after all workers have finished.
 - Processing is deliberately slowed down so the progress is visible: a
   single-threaded run takes about 15 seconds regardless of image size. The
   multi-threaded mode uses the same per-square pace in every thread, so it

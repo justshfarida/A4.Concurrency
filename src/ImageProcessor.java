@@ -14,18 +14,15 @@ public class ImageProcessor {
 
     private final BufferedImage image;
     private final int squareSize;
-    private final Runnable onProgress;
     private final long nanosPerSquare;
 
     /**
      * @param image      the original, full-size image; it is modified in place
      * @param squareSize side of the averaging square in pixels
-     * @param onProgress called after each square, used to refresh the display
      */
-    public ImageProcessor(BufferedImage image, int squareSize, Runnable onProgress) {
+    public ImageProcessor(BufferedImage image, int squareSize) {
         this.image = image;
         this.squareSize = squareSize;
-        this.onProgress = onProgress;
 
         long squaresAcross = Math.ceilDiv(image.getWidth(), squareSize);
         long squaresDown = Math.ceilDiv(image.getHeight(), squareSize);
@@ -75,7 +72,6 @@ public class ImageProcessor {
             for (int x = 0; x < image.getWidth(); x += squareSize) {
                 averageSquare(x, y);
                 squaresDone++;
-                onProgress.run();
                 waitForSchedule(start, squaresDone);
             }
         }

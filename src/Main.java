@@ -1,6 +1,7 @@
 import javax.imageio.ImageIO;
 import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
+import javax.swing.Timer;
 import java.awt.Dimension;
 import java.awt.GraphicsEnvironment;
 import java.awt.Rectangle;
@@ -11,6 +12,9 @@ import java.lang.reflect.InvocationTargetException;
 
 public class Main {
     private static final String RESULT_FILE = "result.jpg";
+
+    // How often the window is redrawn while processing (about 30 frames per second).
+    private static final int REFRESH_INTERVAL_MS = 33;
 
     // Space reserved for the window title bar and borders.
     private static final int FRAME_MARGIN_WIDTH = 20;
@@ -31,16 +35,22 @@ public class Main {
         BufferedImage image = loadImage(fileName);
         ImagePanel panel = createWindow(image);
 
+        // The window is redrawn by a timer at a fixed rate, so the processing
+        // threads never have to interact with Swing.
+        Timer refreshTimer = new Timer(REFRESH_INTERVAL_MS, event -> panel.repaint());
+        refreshTimer.start();
+
         // Processing runs on the main thread, never on Swing's UI thread,
         // so the window stays responsive while squares are being averaged.
-        ImageProcessor processor = new ImageProcessor(image, squareSize, panel::repaint);
-
+        ImageProcessor processor = new ImageProcessor(image, squareSize);
         if (mode.equals("M")) {
             processor.processMultiThreaded();
         } else {
             processor.processSingleThreaded();
         }
-        panel.repaint();
+
+        refreshTimer.stop();
+        panel.repaint(); // final redraw with the finished image
         saveImage(image, RESULT_FILE);
     }
 
