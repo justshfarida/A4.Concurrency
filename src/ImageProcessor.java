@@ -1,3 +1,4 @@
+import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -87,18 +88,19 @@ public class ImageProcessor {
         long green = 0;
         long blue = 0;
         for (int pixel : pixels) {
-            red += (pixel >> 16) & 0xFF;
-            green += (pixel >> 8) & 0xFF;
-            blue += pixel & 0xFF;
+            Color color = new Color(pixel);
+            red += color.getRed();
+            green += color.getGreen();
+            blue += color.getBlue();
         }
 
         int count = pixels.length;
-        int average = 0xFF000000
-                | (int) (red / count) << 16
-                | (int) (green / count) << 8
-                | (int) (blue / count);
+        Color average = new Color(
+                (int) (red / count),
+                (int) (green / count),
+                (int) (blue / count));
 
-        Arrays.fill(pixels, average);
+        Arrays.fill(pixels, average.getRGB());
         image.setRGB(x, y, width, height, pixels, 0, width);
     }
 
